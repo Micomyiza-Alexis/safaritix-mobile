@@ -15,6 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { API_BASE_URL } from '../config/api';
+import Logo from '../components/Logo';
 const { width } = Dimensions.get('window');
 const COLORS = {
   primary: '#0077B6',
@@ -27,8 +29,6 @@ const COLORS = {
   surface: '#F8FAFC',
 };
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://backend-7cxc.onrender.com/api';
-
 const MENU_ITEMS = [
   { key: 'home', label: 'Home', icon: 'home-outline' },
   { key: 'search', label: 'Search Bus', icon: 'search', primary: true },
@@ -40,12 +40,7 @@ const MENU_ITEMS = [
 function Header({ onMenuPress }) {
   return (
     <View style={styles.header}>
-      <View style={styles.logoWrap}>
-        <View style={styles.logoBadge}>
-          <Ionicons name="bus" size={16} color="#FFFFFF" />
-        </View>
-        <Text style={styles.logoText}>SafariTix</Text>
-      </View>
+      <Logo width={164} height={54} />
       <Pressable
         onPress={onMenuPress}
         style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}
@@ -74,7 +69,7 @@ function SlideMenu({ mounted, slideAnim, overlayAnim, onClose, onSelectItem }) {
         ]}
       >
         <View style={styles.menuTopRow}>
-          <Text style={styles.menuTitle}>Menu</Text>
+          <Logo width={152} height={50} />
           <Pressable onPress={onClose} style={({ pressed }) => [styles.menuCloseButton, pressed && styles.menuCloseButtonPressed]}>
             <Ionicons name="close" size={20} color={COLORS.text} />
           </Pressable>
@@ -361,6 +356,16 @@ export default function LandingPage() {
 
     if (item.key === 'home') {
       router.push('/LandingPage');
+      return;
+    }
+
+    if (item.key === 'tickets') {
+      router.push('/my-tickets');
+      return;
+    }
+
+    if (item.key === 'track') {
+      router.push('/my-tickets');
       return;
     }
 
@@ -656,24 +661,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  logoWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  logoBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 9,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: COLORS.text,
-  },
   menuButton: {
     width: 36,
     height: 36,
@@ -727,11 +714,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 18,
-  },
-  menuTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: COLORS.text,
   },
   menuCloseButton: {
     width: 34,

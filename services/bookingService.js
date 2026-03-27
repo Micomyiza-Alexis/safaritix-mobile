@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://backend-7cxc.onrender.com/api';
+import { API_BASE_URL } from '../config/api';
 
 const buildHeaders = (token) => {
   const headers = { 'Content-Type': 'application/json' };
@@ -73,4 +73,36 @@ export const bookMultipleSeats = async ({ scheduleId, from, to, seatNumbers, pas
   }
 
   return booked;
+};
+
+export const confirmMobilePayment = async ({
+  phone,
+  email,
+  from,
+  to,
+  seatNumbers,
+  scheduleId,
+  passengerName,
+}) => {
+  const response = await fetch(`${API_BASE_URL}/mobile/confirm-payment`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({
+      schedule_id: String(scheduleId || ''),
+      from_stop: String(from || ''),
+      to_stop: String(to || ''),
+      seat_numbers: Array.isArray(seatNumbers) ? seatNumbers.map((seat) => String(seat)) : [],
+      passenger_name: passengerName || 'Mobile Passenger',
+      email: String(email || '').trim(),
+      phone: String(phone || '').trim(),
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok || payload?.success !== true) {
+    throw new Error(payload?.message || payload?.error || 'Failed to confirm payment and create booking');
+  }
+
+  return payload;
 };

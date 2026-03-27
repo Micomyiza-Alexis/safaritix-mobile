@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import SeatItem from '../components/seat-map/SeatItem';
-import { bookMultipleSeats, fetchSeatAvailability } from '../services/bookingService';
+import { fetchSeatAvailability } from '../services/bookingService';
 
 const MAX_SEATS_PER_BOOKING = 4;
 
@@ -207,35 +207,19 @@ export default function SeatMapScreen() {
   const onConfirmBooking = async () => {
     if (!selectedSeats.length || booking) return;
 
-    setBooking(true);
-    setError('');
-    try {
-      // Replace with your app token source when auth wiring is finalized.
-      const token = process.env.EXPO_PUBLIC_AUTH_TOKEN || '';
-
-      const booked = await bookMultipleSeats({
+    router.push({
+      pathname: '/payment',
+      params: {
         scheduleId,
         from: fromStop,
         to: toStop,
-        seatNumbers: selectedSeats,
-        token,
-      });
-
-      const bookedSeatNumbers = booked.map((item) => Number(item.seatNumber));
-
-      setBookedSeats((prev) => Array.from(new Set([...prev, ...bookedSeatNumbers])));
-      setAvailableSeats((prev) => prev.filter((seat) => !bookedSeatNumbers.includes(seat)));
-      setSelectedSeats([]);
-
-      Alert.alert(
-        'Booking confirmed',
-        `Successfully booked seat${bookedSeatNumbers.length > 1 ? 's' : ''}: ${bookedSeatNumbers.join(', ')}`
-      );
-    } catch (err) {
-      setError(err?.message || 'Booking failed. Try again.');
-    } finally {
-      setBooking(false);
-    }
+        seats: JSON.stringify(selectedSeats),
+        departureDate,
+        departureTime,
+        busPlate,
+        price: String(price || 0),
+      },
+    });
   };
 
   const remainingSeats = availableSeats.length;
@@ -330,7 +314,7 @@ export default function SeatMapScreen() {
         >
           <Text style={styles.confirmButtonText}>
             {booking
-              ? 'Booking...'
+              ? 'Loading...'
               : selectedSeats.length > 0
                 ? `Confirm Booking (${selectedSeats.length})`
                 : 'Confirm Booking'}

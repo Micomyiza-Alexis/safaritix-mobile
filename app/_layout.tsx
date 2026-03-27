@@ -16,7 +16,11 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="LandingPage" options={{ headerShown: false }} />
+        <Stack.Screen name="my-tickets" options={{ headerShown: false }} />
+        <Stack.Screen name="track-bus" options={{ headerShown: false }} />
         <Stack.Screen name="seat-map" options={{ headerShown: false }} />
+        <Stack.Screen name="payment" options={{ headerShown: false }} />
+        <Stack.Screen name="booking-success" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
