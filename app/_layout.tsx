@@ -21,6 +21,7 @@ export default function RootLayout() {
         <Stack.Screen name="seat-map" options={{ headerShown: false }} />
         <Stack.Screen name="payment" options={{ headerShown: false }} />
         <Stack.Screen name="booking-success" options={{ headerShown: false }} />
+        <Stack.Screen name="contact-us" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>

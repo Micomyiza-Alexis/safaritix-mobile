@@ -40,7 +40,7 @@ const MENU_ITEMS = [
 function Header({ onMenuPress }) {
   return (
     <View style={styles.header}>
-      <Logo width={164} height={54} />
+      <Logo width={205} height={68} />
       <Pressable
         onPress={onMenuPress}
         style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}
@@ -69,7 +69,7 @@ function SlideMenu({ mounted, slideAnim, overlayAnim, onClose, onSelectItem }) {
         ]}
       >
         <View style={styles.menuTopRow}>
-          <Logo width={152} height={50} />
+          <Logo width={190} height={63} />
           <Pressable onPress={onClose} style={({ pressed }) => [styles.menuCloseButton, pressed && styles.menuCloseButtonPressed]}>
             <Ionicons name="close" size={20} color={COLORS.text} />
           </Pressable>
@@ -366,6 +366,11 @@ export default function LandingPage() {
 
     if (item.key === 'track') {
       router.push('/my-tickets');
+      return;
+    }
+
+    if (item.key === 'contact') {
+      router.push('/contact-us');
       return;
     }
 
