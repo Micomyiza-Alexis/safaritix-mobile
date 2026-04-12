@@ -7,53 +7,82 @@ const buildHeaders = (token) => {
 };
 
 export const fetchSeatAvailability = async ({ scheduleId, from, to }) => {
-  const query = new URLSearchParams({
-    schedule_id: String(scheduleId || ''),
-    from: String(from || ''),
-    to: String(to || ''),
-  });
+  try {
+    if (!API_BASE_URL) {
+      throw new Error('API base URL is not configured');
+    }
 
-  const response = await fetch(`${API_BASE_URL}/available-seats?${query.toString()}`);
-  const payload = await response.json().catch(() => ({}));
+    const query = new URLSearchParams({
+      schedule_id: String(scheduleId || ''),
+      from: String(from || ''),
+      to: String(to || ''),
+    });
 
-  if (!response.ok || payload?.success !== true) {
-    throw new Error(payload?.message || payload?.error || 'Failed to fetch seat availability');
+    const url = `${API_BASE_URL}/available-seats?${query.toString()}`;
+    console.log('[fetchSeatAvailability] Calling:', url);
+
+    const response = await fetch(url, { timeout: 15000 });
+    const payload = await response.json().catch(() => ({}));
+
+    console.log('[fetchSeatAvailability] Response:', response.status, payload);
+
+    if (!response.ok || payload?.success !== true) {
+      throw new Error(payload?.message || payload?.error || 'Failed to fetch seat availability');
+    }
+
+    const totalSeats = Number(payload?.total_seats || 0);
+    const availableSeats = Array.isArray(payload?.seat_numbers)
+      ? payload.seat_numbers.map((seat) => Number(seat)).filter((seat) => Number.isInteger(seat) && seat > 0)
+      : [];
+
+    return {
+      totalSeats,
+      availableSeats,
+      scheduleId: payload?.schedule_id || scheduleId,
+      from,
+      to,
+    };
+  } catch (error) {
+    console.error('[fetchSeatAvailability] Error:', error?.message);
+    throw error;
   }
-
-  const totalSeats = Number(payload?.total_seats || 0);
-  const availableSeats = Array.isArray(payload?.seat_numbers)
-    ? payload.seat_numbers.map((seat) => Number(seat)).filter((seat) => Number.isInteger(seat) && seat > 0)
-    : [];
-
-  return {
-    totalSeats,
-    availableSeats,
-    scheduleId: payload?.schedule_id || scheduleId,
-    from,
-    to,
-  };
 };
 
 export const bookSeat = async ({ scheduleId, from, to, seatNumber, passengerName, token }) => {
-  const response = await fetch(`${API_BASE_URL}/book-ticket`, {
-    method: 'POST',
-    headers: buildHeaders(token),
-    body: JSON.stringify({
-      schedule_id: String(scheduleId || ''),
-      from_stop: String(from || ''),
-      to_stop: String(to || ''),
-      seat_number: String(seatNumber || ''),
-      passenger_name: passengerName || undefined,
-    }),
-  });
+  try {
+    if (!API_BASE_URL) {
+      throw new Error('API base URL is not configured');
+    }
 
-  const payload = await response.json().catch(() => ({}));
+    const url = `${API_BASE_URL}/book-ticket`;
+    console.log('[bookSeat] Calling:', url);
 
-  if (!response.ok || payload?.success !== true) {
-    throw new Error(payload?.message || payload?.error || `Failed to book seat ${seatNumber}`);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: buildHeaders(token),
+      body: JSON.stringify({
+        schedule_id: String(scheduleId || ''),
+        from_stop: String(from || ''),
+        to_stop: String(to || ''),
+        seat_number: String(seatNumber || ''),
+        passenger_name: passengerName || undefined,
+      }),
+      timeout: 15000,
+    });
+
+    const payload = await response.json().catch(() => ({}));
+
+    console.log('[bookSeat] Response:', response.status, payload);
+
+    if (!response.ok || payload?.success !== true) {
+      throw new Error(payload?.message || payload?.error || `Failed to book seat ${seatNumber}`);
+    }
+
+    return payload?.ticket || null;
+  } catch (error) {
+    console.error('[bookSeat] Error:', error?.message);
+    throw error;
   }
-
-  return payload?.ticket || null;
 };
 
 export const bookMultipleSeats = async ({ scheduleId, from, to, seatNumbers, passengerName, token }) => {
@@ -84,25 +113,40 @@ export const confirmMobilePayment = async ({
   scheduleId,
   passengerName,
 }) => {
-  const response = await fetch(`${API_BASE_URL}/mobile/confirm-payment`, {
-    method: 'POST',
-    headers: buildHeaders(),
-    body: JSON.stringify({
-      schedule_id: String(scheduleId || ''),
-      from_stop: String(from || ''),
-      to_stop: String(to || ''),
-      seat_numbers: Array.isArray(seatNumbers) ? seatNumbers.map((seat) => String(seat)) : [],
-      passenger_name: passengerName || 'Mobile Passenger',
-      email: String(email || '').trim(),
-      phone: String(phone || '').trim(),
-    }),
-  });
+  try {
+    if (!API_BASE_URL) {
+      throw new Error('API base URL is not configured');
+    }
 
-  const payload = await response.json().catch(() => ({}));
+    const url = `${API_BASE_URL}/mobile/confirm-payment`;
+    console.log('[confirmMobilePayment] Calling:', url);
 
-  if (!response.ok || payload?.success !== true) {
-    throw new Error(payload?.message || payload?.error || 'Failed to confirm payment and create booking');
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: buildHeaders(),
+      body: JSON.stringify({
+        schedule_id: String(scheduleId || ''),
+        from_stop: String(from || ''),
+        to_stop: String(to || ''),
+        seat_numbers: Array.isArray(seatNumbers) ? seatNumbers.map((seat) => String(seat)) : [],
+        passenger_name: passengerName || 'Mobile Passenger',
+        email: String(email || '').trim(),
+        phone: String(phone || '').trim(),
+      }),
+      timeout: 15000,
+    });
+
+    const payload = await response.json().catch(() => ({}));
+
+    console.log('[confirmMobilePayment] Response:', response.status, payload);
+
+    if (!response.ok || payload?.success !== true) {
+      throw new Error(payload?.message || payload?.error || 'Failed to confirm payment and create booking');
+    }
+
+    return payload;
+  } catch (error) {
+    console.error('[confirmMobilePayment] Error:', error?.message);
+    throw error;
   }
-
-  return payload;
 };

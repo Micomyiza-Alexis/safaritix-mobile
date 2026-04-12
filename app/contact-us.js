@@ -87,7 +87,7 @@ function Header({ onMenuPress, onBackPress }) {
       <Pressable onPress={onBackPress} style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
         <Ionicons name="arrow-back" size={20} color={COLORS.text} />
       </Pressable>
-      <Logo width={175} height={56} />
+      <Logo width={245} height={79} />
       <Pressable
         onPress={onMenuPress}
         style={({ pressed }) => [styles.menuButton, pressed && styles.menuButtonPressed]}
@@ -482,7 +482,7 @@ export default function ContactUsPage() {
             ]}
           >
             <View style={styles.menuTopRow}>
-              <Logo width={150} height={50} />
+              <Logo width={210} height={70} />
               <Pressable onPress={closeMenu} style={({ pressed }) => [styles.menuCloseButton, pressed && styles.menuCloseButtonPressed]}>
                 <Ionicons name="close" size={18} color={COLORS.text} />
               </Pressable>

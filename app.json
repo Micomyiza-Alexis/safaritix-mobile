@@ -17,7 +17,8 @@
         "foregroundImage": "./assets/images/SafariTix-Logo.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.safaritixmobile"
     },
     "web": {
       "output": "static",

@@ -121,6 +121,10 @@ export default function MyTicketsScreen() {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Find Your Tickets</Text>
+          <Text style={styles.helperText}>
+            Enter the email and booking reference from your confirmation email or ticket.
+          </Text>
+          <Text style={styles.fieldLabel}>Email Address</Text>
           <TextInput
             value={email}
             onChangeText={setEmail}
@@ -130,11 +134,12 @@ export default function MyTicketsScreen() {
             placeholderTextColor="#94A3B8"
             style={styles.input}
           />
+          <Text style={styles.fieldLabel}>Booking Reference or Ticket Number</Text>
           <TextInput
             value={bookingId}
             onChangeText={setBookingId}
             autoCapitalize="none"
-            placeholder="Booking ID"
+            placeholder="e.g., BK123456 or TK987654"
             placeholderTextColor="#94A3B8"
             style={styles.input}
           />
@@ -262,6 +267,20 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 17,
     fontWeight: '900',
+  },
+  helperText: {
+    color: COLORS.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '500',
+    marginBottom: 6,
+  },
+  fieldLabel: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 4,
+    marginBottom: 4,
   },
   input: {
     minHeight: 48,
