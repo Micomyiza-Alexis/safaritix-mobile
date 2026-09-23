@@ -1,31 +1,29 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="LandingPage" options={{ headerShown: false }} />
-        <Stack.Screen name="my-tickets" options={{ headerShown: false }} />
-        <Stack.Screen name="track-bus" options={{ headerShown: false }} />
-        <Stack.Screen name="seat-map" options={{ headerShown: false }} />
-        <Stack.Screen name="payment" options={{ headerShown: false }} />
-        <Stack.Screen name="booking-success" options={{ headerShown: false }} />
-        <Stack.Screen name="contact-us" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(main)" />
+        <Stack.Screen name="booking" />
+        <Stack.Screen name="tickets" />
+        <Stack.Screen name="tracking" />
+        <Stack.Screen name="auth" />
+        <Stack.Screen name="support" />
+
+        {/* Legacy screens — kept temporarily during migration */}
+        <Stack.Screen name="LandingPage" />
+        <Stack.Screen name="my-tickets" />
+        <Stack.Screen name="track-bus" />
+        <Stack.Screen name="seat-map" />
+        <Stack.Screen name="payment" />
+        <Stack.Screen name="booking-success" />
+        <Stack.Screen name="contact-us" />
       </Stack>
+
       <StatusBar style="auto" />
-    </ThemeProvider>
+    </>
   );
 }
