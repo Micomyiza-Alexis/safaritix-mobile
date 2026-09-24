@@ -7,13 +7,15 @@ export default function RootLayout() {
     <>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(main)" />
-        <Stack.Screen name="booking" />
-        <Stack.Screen name="tickets" />
-        <Stack.Screen name="tracking" />
-        <Stack.Screen name="auth" />
-        <Stack.Screen name="support" />
 
-        {/* Legacy screens — kept temporarily during migration */}
+        {/* Booking */}
+        <Stack.Screen name="booking/search" />
+
+        {/* Tickets & support */}
+        <Stack.Screen name="tickets" />
+        <Stack.Screen name="support/contact" />
+
+        {/* Legacy screens — temporary during migration */}
         <Stack.Screen name="LandingPage" />
         <Stack.Screen name="my-tickets" />
         <Stack.Screen name="track-bus" />
