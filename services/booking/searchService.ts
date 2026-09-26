@@ -11,14 +11,22 @@ export interface Trip {
   bus_id?: number | string | null;
   bus_plate?: string | null;
   route_id?: number | string | null;
+
+  from_location?: string | null;
+  to_location?: string | null;
+
   pickup_stop?: string | null;
   dropoff_stop?: string | null;
+
   departure_date?: string | null;
   departure_time?: string | null;
+
   price?: number | string | null;
   available_seats?: number | null;
+
   company_name?: string | null;
-  [key: string]: unknown;
+
+  status?: string | null;
 }
 
 interface SearchTripsResponse {
