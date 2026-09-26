@@ -13,7 +13,13 @@ import {
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Colors, Radius, Shadows, Spacing, Typography } from "@/constants/theme";
+import {
+  Colors,
+  Radius,
+  Shadows,
+  Spacing,
+  Typography,
+} from "@/constants/theme";
 import { searchTrips, Trip } from "@/services/booking/searchService";
 
 export default function SearchScreen() {
@@ -52,9 +58,7 @@ export default function SearchScreen() {
         console.error("Trip search error:", err);
 
         setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to search for trips.",
+          err instanceof Error ? err.message : "Unable to search for trips.",
         );
       } finally {
         setLoading(false);
@@ -77,11 +81,7 @@ export default function SearchScreen() {
             onPress={() => router.back()}
             activeOpacity={0.8}
           >
-            <Ionicons
-              name="arrow-back"
-              size={22}
-              color={Colors.text}
-            />
+            <Ionicons name="arrow-back" size={22} color={Colors.text} />
           </TouchableOpacity>
 
           <View style={styles.headerText}>
@@ -106,9 +106,7 @@ export default function SearchScreen() {
 
             <View>
               <Text style={styles.infoLabel}>Travel date</Text>
-              <Text style={styles.infoValue}>
-                {formatDate(date)}
-              </Text>
+              <Text style={styles.infoValue}>{formatDate(date)}</Text>
             </View>
           </View>
         </Card>
@@ -116,14 +114,9 @@ export default function SearchScreen() {
         {/* Loading */}
         {loading && (
           <View style={styles.centerState}>
-            <ActivityIndicator
-              size="large"
-              color={Colors.primary}
-            />
+            <ActivityIndicator size="large" color={Colors.primary} />
 
-            <Text style={styles.stateTitle}>
-              Searching for buses...
-            </Text>
+            <Text style={styles.stateTitle}>Searching for buses...</Text>
 
             <Text style={styles.stateText}>
               Finding available trips for your route.
@@ -142,13 +135,9 @@ export default function SearchScreen() {
               />
             </View>
 
-            <Text style={styles.stateTitle}>
-              Something went wrong
-            </Text>
+            <Text style={styles.stateTitle}>Something went wrong</Text>
 
-            <Text style={styles.stateText}>
-              {error}
-            </Text>
+            <Text style={styles.stateText}>{error}</Text>
 
             <Button
               title="Try Again"
@@ -178,20 +167,14 @@ export default function SearchScreen() {
         {!loading && !error && trips.length === 0 && (
           <Card style={styles.stateCard}>
             <View style={styles.stateIcon}>
-              <Ionicons
-                name="bus-outline"
-                size={30}
-                color={Colors.primary}
-              />
+              <Ionicons name="bus-outline" size={30} color={Colors.primary} />
             </View>
 
-            <Text style={styles.stateTitle}>
-              No buses found
-            </Text>
+            <Text style={styles.stateTitle}>No buses found</Text>
 
             <Text style={styles.stateText}>
-              We couldn't find any available buses for this route and
-              travel date.
+              We couldn't find any available buses for this route and travel
+              date.
             </Text>
 
             <Button
@@ -215,9 +198,20 @@ export default function SearchScreen() {
                 key={`${trip.schedule_id}-${index}`}
                 trip={trip}
                 onSelect={() => {
-                  // Seat selection will be added after we create
-                  // the next booking screen.
-                  console.log("Selected trip:", trip);
+                  router.push({
+                    pathname: "/seat-map",
+                    params: {
+                      scheduleId: String(trip.schedule_id),
+                      from: String(
+                        trip.pickup_stop || trip.from_location || "",
+                      ),
+                      to: String(trip.dropoff_stop || trip.to_location || ""),
+                      busPlate: String(trip.bus_plate || "Bus"),
+                      departureDate: String(trip.departure_date || ""),
+                      departureTime: String(trip.departure_time || ""),
+                      price: String(trip.price || 0),
+                    },
+                  });
                 }}
               />
             ))}
@@ -228,23 +222,13 @@ export default function SearchScreen() {
   );
 }
 
-function TripCard({
-  trip,
-  onSelect,
-}: {
-  trip: Trip;
-  onSelect: () => void;
-}) {
+function TripCard({ trip, onSelect }: { trip: Trip; onSelect: () => void }) {
   return (
     <Card style={styles.tripCard}>
       {/* Company / bus */}
       <View style={styles.tripTop}>
         <View style={styles.busIcon}>
-          <Ionicons
-            name="bus-outline"
-            size={23}
-            color={Colors.primary}
-          />
+          <Ionicons name="bus-outline" size={23} color={Colors.primary} />
         </View>
 
         <View style={styles.tripMain}>
@@ -258,26 +242,18 @@ function TripCard({
         </View>
 
         <View style={styles.priceContainer}>
-          <Text style={styles.price}>
-            {formatPrice(trip.price)}
-          </Text>
+          <Text style={styles.price}>{formatPrice(trip.price)}</Text>
 
-          <Text style={styles.priceLabel}>
-            per seat
-          </Text>
+          <Text style={styles.priceLabel}>per seat</Text>
         </View>
       </View>
 
       {/* Time */}
       <View style={styles.timeRow}>
         <View style={styles.timeBlock}>
-          <Text style={styles.time}>
-            {formatTime(trip.departure_time)}
-          </Text>
+          <Text style={styles.time}>{formatTime(trip.departure_time)}</Text>
 
-          <Text style={styles.stop}>
-            {trip.pickup_stop || "Departure"}
-          </Text>
+          <Text style={styles.stop}>{trip.pickup_stop || "Departure"}</Text>
         </View>
 
         <View style={styles.lineContainer}>
@@ -285,11 +261,7 @@ function TripCard({
 
           <View style={styles.line} />
 
-          <Ionicons
-            name="bus-outline"
-            size={17}
-            color={Colors.primary}
-          />
+          <Ionicons name="bus-outline" size={17} color={Colors.primary} />
 
           <View style={styles.line} />
 
@@ -297,12 +269,10 @@ function TripCard({
         </View>
 
         <View style={[styles.timeBlock, styles.destinationBlock]}>
-          <Text style={styles.time}>
-            {trip.dropoff_stop || "Destination"}
-          </Text>
+          <Text style={styles.time}>Destination</Text>
 
           <Text style={styles.stop}>
-            {trip.to_location || trip.dropoff_stop || "Arrival"}
+            {trip.dropoff_stop || trip.to_location || "Destination"}
           </Text>
         </View>
       </View>
@@ -310,11 +280,7 @@ function TripCard({
       {/* Availability */}
       <View style={styles.detailsRow}>
         <View style={styles.detail}>
-          <Ionicons
-            name="people-outline"
-            size={17}
-            color={Colors.textMuted}
-          />
+          <Ionicons name="people-outline" size={17} color={Colors.textMuted} />
 
           <Text style={styles.detailText}>
             {trip.available_seats ?? 0} seats available
@@ -322,15 +288,9 @@ function TripCard({
         </View>
 
         <View style={styles.detail}>
-          <Ionicons
-            name="time-outline"
-            size={17}
-            color={Colors.textMuted}
-          />
+          <Ionicons name="time-outline" size={17} color={Colors.textMuted} />
 
-          <Text style={styles.detailText}>
-            {trip.status || "Scheduled"}
-          </Text>
+          <Text style={styles.detailText}>{trip.status || "Scheduled"}</Text>
         </View>
       </View>
 
