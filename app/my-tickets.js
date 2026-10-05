@@ -31,19 +31,7 @@ const buildQrValue = (ticket, booking) => {
   const payload = ticket?.qrData;
   if (payload && typeof payload === 'object') return JSON.stringify(payload);
 
-  return JSON.stringify({
-    bookingId: ticket?.bookingId || booking?.bookingId || null,
-    bookingRef: ticket?.bookingRef || booking?.bookingRef || null,
-    ticketId: ticket?.ticketId || ticket?.id || null,
-    ticketNumber: ticket?.ticketNumber || ticket?.booking_ref || ticket?.bookingRef || ticket?.id || null,
-    seatNumber: ticket?.seatNumber || ticket?.seat_number || null,
-    seatNumbers: ticket?.seatNumber ? [String(ticket.seatNumber)] : ticket?.seat_number ? [String(ticket.seat_number)] : [],
-    from: ticket?.routeFrom || null,
-    to: ticket?.routeTo || null,
-    date: ticket?.departureDate || null,
-    bus: ticket?.busPlate || null,
-    userId: booking?.userId || null,
-  });
+  return null;
 };
 
 export default function MyTicketsScreen() {
@@ -192,14 +180,7 @@ export default function MyTicketsScreen() {
                 </View>
 
                 <View style={styles.qrWrap}>
-                  <QRCode
-                    value={buildQrValue(ticket, booking)}
-                    size={206}
-                    backgroundColor="#FFFFFF"
-                    color="#0F172A"
-                    ecl="M"
-                    quietZone={10}
-                  />
+                  {buildQrValue(ticket, booking) ? <QRCode value={buildQrValue(ticket, booking)} size={206} backgroundColor="#FFFFFF" color="#0F172A" ecl="M" quietZone={10} /> : <Text style={styles.metaText}>QR data unavailable from backend.</Text>}
                 </View>
 
                 <Pressable

@@ -4,6 +4,7 @@ import {
   AuthUser,
   getAccessToken,
   getCurrentUser,
+  clearSession,
   login as loginRequest,
   logout as logoutRequest,
   refreshSession,
@@ -55,7 +56,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         });
       } catch {
         await refreshSession();
-const user = await getCurrentUser();
+        const user = await getCurrentUser();
 
         set({
           user,
@@ -65,6 +66,7 @@ const user = await getCurrentUser();
         });
       }
     } catch {
+      await clearSession();
       set({
         user: null,
         isAuthenticated: false,
@@ -79,6 +81,11 @@ const user = await getCurrentUser();
 
     try {
       const response = await loginRequest(email, password);
+
+      if (response.user.role !== 'commuter') {
+        await clearSession();
+        throw new Error('This mobile app is only available to commuter accounts.');
+      }
 
       set({
         user: response.user,
@@ -119,6 +126,7 @@ const user = await getCurrentUser();
 
       return user;
     } catch {
+      await clearSession();
       set({
         user: null,
         isAuthenticated: false,

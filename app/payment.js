@@ -8,12 +8,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { confirmMobilePayment } from '../services/bookingService';
+import { bookMobileTicket } from '../services/bookingService';
 
 const COLORS = {
   primary: '#0077B6',
@@ -27,8 +26,6 @@ const COLORS = {
   card: '#FFFFFF',
   danger: '#B42318',
 };
-
-const isValidEmail = (value) => /\S+@\S+\.\S+/.test(String(value || '').trim());
 
 export default function PaymentScreen() {
   const router = useRouter();
@@ -50,26 +47,15 @@ export default function PaymentScreen() {
     }
   }, [params?.seats]);
 
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [idempotencyKey] = useState(() => `mobile-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   const totalAmount = selectedSeats.length * price;
 
-  const handleConfirmPayment = async () => {
+  const handleBuyTicket = async () => {
     if (!scheduleId || !from || !to || selectedSeats.length === 0) {
       setError('Missing booking details. Please go back and select seats again.');
-      return;
-    }
-
-    if (!phone.trim()) {
-      setError('Please enter your phone number.');
-      return;
-    }
-
-    if (!isValidEmail(email)) {
-      setError('Please enter a valid email address.');
       return;
     }
 
@@ -77,13 +63,12 @@ export default function PaymentScreen() {
     setError('');
 
     try {
-      const payload = await confirmMobilePayment({
-        phone,
-        email,
+      const payload = await bookMobileTicket({
         from,
         to,
         seatNumbers: selectedSeats,
         scheduleId,
+        idempotencyKey,
       });
 
       router.replace({
@@ -94,7 +79,7 @@ export default function PaymentScreen() {
         },
       });
     } catch (err) {
-      const message = err?.message || 'Payment confirmation failed. Please try again.';
+      const message = err?.message || 'Booking failed. Please try again.';
       setError(message);
       Alert.alert('Booking failed', message);
     } finally {
@@ -112,7 +97,7 @@ export default function PaymentScreen() {
           <Pressable onPress={() => router.back()} style={styles.iconButton}>
             <Ionicons name="arrow-back" size={18} color={COLORS.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>Payment</Text>
+          <Text style={styles.headerTitle}>Buy Ticket</Text>
           <View style={styles.iconButtonPlaceholder} />
         </View>
 
@@ -126,40 +111,17 @@ export default function PaymentScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Passenger Contact</Text>
-
-          <Text style={styles.label}>Phone Number</Text>
-          <TextInput
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            placeholder="+2507XXXXXXXX"
-            placeholderTextColor="#94A3B8"
-            style={styles.input}
-          />
-
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            placeholder="you@example.com"
-            placeholderTextColor="#94A3B8"
-            style={styles.input}
-          />
-
           <View style={styles.noticeBox}>
             <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
             <Text style={styles.noticeText}>
-              Payment is simulated for now. Tapping confirm will create the booking, generate the ticket and send it to the email above.
+              This MVP skips external payment. SafariTix validates the trip and seat on the backend, then creates a confirmed ticket.
             </Text>
           </View>
 
           {!!error && <Text style={styles.errorText}>{error}</Text>}
 
           <Pressable
-            onPress={handleConfirmPayment}
+            onPress={handleBuyTicket}
             disabled={submitting}
             style={({ pressed }) => [
               styles.confirmButton,
@@ -173,7 +135,7 @@ export default function PaymentScreen() {
                 <Text style={styles.confirmButtonText}>Confirming...</Text>
               </View>
             ) : (
-              <Text style={styles.confirmButtonText}>Confirm Payment</Text>
+              <Text style={styles.confirmButtonText}>Buy Ticket</Text>
             )}
           </Pressable>
         </View>

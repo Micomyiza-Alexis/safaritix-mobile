@@ -35,8 +35,7 @@ const COLORS = {
 // - Visual rows 2+ have 2 seats on the left + aisle + 2 seats on the right.
 // - Seat numbers increase sequentially from the front of the bus.
 const buildSeatRows = (totalSeats) => {
-  // The intended bus layout shown in the design goes up to seat 29.
-  const normalizedTotal = Math.min(29, Math.max(0, Number(totalSeats || 0)));
+  const normalizedTotal = Math.max(0, Number(totalSeats || 0));
   if (normalizedTotal === 0) return [];
 
   const rows = [];
@@ -69,21 +68,6 @@ const buildSeatRows = (totalSeats) => {
   }
 
   return rows;
-};
-
-const createFallbackSeatSnapshot = () => {
-  // Demo layout capped to 29 seats for the intended bus architecture.
-  const totalSeats = 29;
-  // Default to everything being available in fallback (matches the provided layout screenshot).
-  const bookedSeats = [];
-  const bookedSet = new Set(bookedSeats);
-
-  const availableSeats = [];
-  for (let seat = 1; seat <= totalSeats; seat += 1) {
-    if (!bookedSet.has(seat)) availableSeats.push(seat);
-  }
-
-  return { totalSeats, availableSeats, bookedSeats };
 };
 
 export default function SeatMapScreen() {
@@ -161,11 +145,12 @@ export default function SeatMapScreen() {
       setError('');
       try {
         await refreshAvailability();
-      } catch (_err) {
-        // Demo fallback so seat map remains usable during backend slowness.
-        applySnapshot(createFallbackSeatSnapshot());
+      } catch (err) {
         if (mounted) {
-          setError('Live seat sync is temporarily unavailable. Showing demo seat data.');
+          setError(err?.message || 'Unable to load live seat availability.');
+          setAvailableSeats([]);
+          setBookedSeats([]);
+          setSelectedSeats([]);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -206,6 +191,7 @@ export default function SeatMapScreen() {
 
   const onConfirmBooking = async () => {
     if (!selectedSeats.length || booking) return;
+    setBooking(true);
 
     router.push({
       pathname: '/payment',
@@ -316,8 +302,8 @@ export default function SeatMapScreen() {
             {booking
               ? 'Loading...'
               : selectedSeats.length > 0
-                ? `Confirm Booking (${selectedSeats.length})`
-                : 'Confirm Booking'}
+                ? `Buy Ticket (${selectedSeats.length})`
+                : 'Buy Ticket'}
           </Text>
         </Pressable>
       </View>

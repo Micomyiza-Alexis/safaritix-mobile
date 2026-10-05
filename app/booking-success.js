@@ -28,19 +28,7 @@ const buildQrValue = (ticket, booking) => {
     return JSON.stringify(payload);
   }
 
-  return JSON.stringify({
-    bookingId: booking?.bookingId || booking?.id || ticket?.payment_id || ticket?.booking_id || null,
-    bookingRef: booking?.booking_ref || ticket?.booking_ref || ticket?.bookingRef || null,
-    ticketId: ticket?.ticketId || ticket?.id || null,
-    ticketNumber: ticket?.ticketNumber || ticket?.booking_ref || ticket?.bookingRef || ticket?.id || null,
-    seatNumber: ticket?.seat_number || ticket?.seatNumber || null,
-    seatNumbers: Array.isArray(booking?.seats) ? booking.seats.map(String) : [ticket?.seat_number || ticket?.seatNumber].filter(Boolean).map(String),
-    from: booking?.from || null,
-    to: booking?.to || null,
-    date: booking?.departure_date || null,
-    bus: booking?.bus_plate || null,
-    userId: booking?.userId || ticket?.passenger_id || null,
-  });
+  return null;
 };
 
 export default function BookingSuccessScreen() {
@@ -61,7 +49,7 @@ export default function BookingSuccessScreen() {
             <Ionicons name="checkmark" size={28} color="#FFFFFF" />
           </View>
           <Text style={styles.heroTitle}>Booking Confirmed</Text>
-          <Text style={styles.heroSubtitle}>Your ticket has been created and sent to {booking?.email || 'your email'}.</Text>
+          <Text style={styles.heroSubtitle}>Your ticket was created successfully by SafariTix.</Text>
         </View>
 
         <View style={styles.card}>
@@ -81,43 +69,26 @@ export default function BookingSuccessScreen() {
             <Text style={styles.metaText}>Ticket Number: {ticket?.ticketNumber || ticket?.booking_ref || ticket?.bookingRef || ticket?.id || 'N/A'}</Text>
             <Text style={styles.metaText}>Seat: {ticket?.seat_number || ticket?.seatNumber || 'N/A'}</Text>
             <View style={styles.qrBox}>
-              <QRCode
-                value={buildQrValue(ticket, booking)}
-                size={220}
-                backgroundColor="#FFFFFF"
-                color="#0F172A"
-                ecl="M"
-                quietZone={10}
-              />
+              {buildQrValue(ticket, booking) ? <QRCode value={buildQrValue(ticket, booking)} size={220} backgroundColor="#FFFFFF" color="#0F172A" ecl="M" quietZone={10} /> : <Text style={styles.metaText}>QR data was not returned by the backend.</Text>}
             </View>
             <Text style={styles.qrCaption}>Scan this code at boarding.</Text>
           </View>
         )) : (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Ticket QR</Text>
-            <View style={styles.qrBox}>
-              <QRCode
-                value={buildQrValue({}, booking)}
-                size={220}
-                backgroundColor="#FFFFFF"
-                color="#0F172A"
-                ecl="M"
-                quietZone={10}
-              />
-            </View>
-            <Text style={styles.qrCaption}>Scan this code at boarding.</Text>
-          </View>
+          <View style={styles.card}><Text style={styles.sectionTitle}>Ticket QR</Text><Text style={styles.metaText}>No ticket was returned by the backend.</Text></View>
         )}
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Next Step</Text>
           <Text style={styles.metaText}>
-            Check your inbox for the e-ticket with the QR code. You can use that QR code for boarding verification.
+            Your ticket is available in Trips. Show the QR code when boarding.
           </Text>
         </View>
 
         <Pressable onPress={() => router.replace('/LandingPage')} style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>Back to Home</Text>
+        </Pressable>
+        <Pressable onPress={() => router.replace('/(main)/trips')} style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonText}>View My Trips</Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -208,6 +179,19 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  secondaryButton: {
+    minHeight: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    color: COLORS.primary,
     fontSize: 15,
     fontWeight: '900',
   },
