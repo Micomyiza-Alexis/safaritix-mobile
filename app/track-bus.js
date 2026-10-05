@@ -115,7 +115,7 @@ export default function TrackBusScreen() {
           <Text style={styles.metaText}>{from || booking?.from || 'N/A'} {'->'} {to || booking?.to || 'N/A'}</Text>
           <Text style={styles.metaText}>Booking ID: {bookingId}</Text>
           <Text style={styles.metaText}>Seat: {seatNumber || booking?.seatNumber || 'N/A'}</Text>
-          <Text style={styles.metaText}>Source: {location?.source === 'live_gps' ? 'Live GPS' : 'Demo tracking'}</Text>
+          <Text style={styles.metaText}>Source: {location?.source === 'live_gps' ? 'Live GPS' : 'No current location reported by the backend'}</Text>
         </View>
 
         <View style={styles.mapCard}>
@@ -124,7 +124,7 @@ export default function TrackBusScreen() {
             coordinates={coordinates}
             region={region}
             busPlate={busPlate || booking?.busPlate || 'SafariTix bus'}
-            locationLabel={location?.currentLocationLabel || 'Current bus location'}
+            locationLabel={location?.currentLocationLabel || 'Tracking is not available yet'}
           />
         </View>
 

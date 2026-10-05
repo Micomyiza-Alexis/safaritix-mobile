@@ -74,6 +74,11 @@ export async function apiRequest<T>(
         'error' in data &&
         typeof data.error === 'string'
           ? data.error
+          : typeof data === 'object' &&
+              data !== null &&
+              'message' in data &&
+              typeof data.message === 'string'
+            ? data.message
           : `Request failed with status ${response.status}`;
 
       throw new ApiError(message, response.status, data);
