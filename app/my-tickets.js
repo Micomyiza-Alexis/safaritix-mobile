@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
 import { fetchGuestTickets } from '../services/guestTicketService';
+import { buildTicketQrValue } from '../services/tickets/qrPayload';
 
 const COLORS = {
   primary: '#0077B6',
@@ -28,10 +29,7 @@ const COLORS = {
 };
 
 const buildQrValue = (ticket, booking) => {
-  const payload = ticket?.qrData;
-  if (payload && typeof payload === 'object') return JSON.stringify(payload);
-
-  return null;
+  return buildTicketQrValue(ticket);
 };
 
 export default function MyTicketsScreen() {

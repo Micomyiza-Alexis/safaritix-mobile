@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
+import { buildTicketQrValue } from '../services/tickets/qrPayload';
 
 const COLORS = {
   primary: '#0077B6',
@@ -23,12 +24,7 @@ const parseJsonParam = (value, fallback) => {
 };
 
 const buildQrValue = (ticket, booking) => {
-  const payload = ticket?.qrData || ticket?.qr_data || ticket?.qrCodeData || null;
-  if (payload && typeof payload === 'object') {
-    return JSON.stringify(payload);
-  }
-
-  return null;
+  return buildTicketQrValue(ticket);
 };
 
 export default function BookingSuccessScreen() {

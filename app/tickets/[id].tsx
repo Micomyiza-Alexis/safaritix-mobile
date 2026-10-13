@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { getMyTickets, CommuterTicket } from '@/services/tickets/ticketService';
+import { buildTicketQrValue } from '@/services/tickets/qrPayload';
 
 export default function TicketDetailScreen() {
   const router = useRouter();
@@ -23,10 +25,11 @@ export default function TicketDetailScreen() {
   if (loading) return <View style={styles.center}><ActivityIndicator color="#0077B6" /></View>;
   if (error || !ticket) return <View style={styles.center}><Text style={styles.error}>{error || 'Ticket unavailable.'}</Text><Pressable onPress={load}><Text style={styles.link}>Try again</Text></Pressable></View>;
   const qrCodeUrl = ticket.qrCodeUrl || ticket.qr_code_url;
+  const qrValue = buildTicketQrValue(ticket);
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
     <Pressable onPress={() => router.back()}><Text style={styles.back}>‹ Back to Trips</Text></Pressable><Text style={styles.title}>Ticket Details</Text>
     <View style={styles.card}><Text style={styles.route}>{ticket.from_stop || ticket.fromStop || 'N/A'} → {ticket.to_stop || ticket.toStop || 'N/A'}</Text><Text style={styles.detail}>Ticket number: {ticket.ticketNumber || ticket.booking_ref || ticket.id}</Text><Text style={styles.detail}>Booking reference: {ticket.booking_ref || ticket.bookingRef || 'N/A'}</Text><Text style={styles.detail}>Travel date: {ticket.schedule_date || ticket.departureDate || 'N/A'}</Text><Text style={styles.detail}>Departure: {ticket.departure_time || ticket.departureTime || 'N/A'}</Text><Text style={styles.detail}>Bus: {ticket.bus_plate || ticket.busPlate || 'N/A'}</Text><Text style={styles.detail}>Seat: {ticket.seat_number || 'N/A'}</Text><Text style={styles.detail}>Status: {String(ticket.status || 'UNKNOWN').replace(/_/g, ' ')}</Text></View>
-    <View style={styles.card}><Text style={styles.heading}>Boarding QR code</Text>{qrCodeUrl ? <Image accessibilityLabel="Ticket QR code" source={{ uri: qrCodeUrl }} style={styles.qr} resizeMode="contain" /> : <Text style={styles.detail}>The backend did not return a QR code for this ticket.</Text>}{qrCodeUrl ? <Text style={styles.caption}>Show this backend-generated QR code when boarding.</Text> : null}</View>
+    <View style={styles.card}><Text style={styles.heading}>Boarding QR code</Text>{qrValue ? <QRCode value={qrValue} size={240} backgroundColor="#FFFFFF" color="#0F172A" ecl="M" quietZone={10} /> : qrCodeUrl ? <Image accessibilityLabel="Ticket QR code" source={{ uri: qrCodeUrl }} style={styles.qr} resizeMode="contain" /> : <Text style={styles.detail}>Ticket QR data is unavailable.</Text>}{qrValue || qrCodeUrl ? <Text style={styles.caption}>Show this ticket QR code when boarding.</Text> : null}</View>
   </ScrollView>;
 }
 

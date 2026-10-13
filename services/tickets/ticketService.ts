@@ -3,7 +3,9 @@ import { getAccessToken } from '@/services/auth/authService';
 
 export interface CommuterTicket {
   id: string | number;
+  ticketId?: string | number;
   ticket_id?: string | number;
+  scheduleId?: string | number | null;
   schedule_id?: string | number | null;
   seat_number?: string | number | null;
   booking_ref?: string | null;
