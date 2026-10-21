@@ -54,3 +54,4 @@ const resolveLocalApiUrl = () => {
 };
 
 export const API_BASE_URL = resolveLocalApiUrl();
+export const SOCKET_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');

@@ -1,504 +1,489 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useNavigation } from "expo-router";
-import { useState } from "react";
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  SafeAreaView,
+  Animated,
+  Easing,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  TextInput,
   View,
-} from "react-native";
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { API_BASE_URL } from '@/config/api';
+import Logo from '@/components/Logo';
+import { Button, Card, EmptyState, Pill, SectionTitle, Skeleton } from '@/components/ui';
+import { color, space, toLocalISO, type } from '@/theme';
 
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import {
-  Colors,
-  Radius,
-  Shadows,
-  Spacing,
-  Typography,
-} from "@/constants/theme";
-
-const getDateString = (offsetDays: number) => {
-  const date = new Date();
-  date.setDate(date.getDate() + offsetDays);
-
-  return date.toISOString().slice(0, 10);
+type Trip = {
+  schedule_id: string; route_id: string; bus_id: string; bus_plate: string; company_name: string;
+  pickup_stop: string; dropoff_stop: string; departure_date: string | null; departure_time: string | null;
+  available_seats: number; price: number;
 };
 
-const getNextSaturday = () => {
-  const date = new Date();
-  const day = date.getDay();
-  const daysUntilSaturday = (6 - day + 7) % 7;
+// Shortcuts that only prefill the search form. They carry no prices, times or availability.
+// NOTE: stop names must match what /search-trips expects; edit this list to your real routes.
+const ROUTE_SHORTCUTS = [
+  { from: 'Kigali', to: 'Huye', tint: '#005F8E' },
+  { from: 'Kigali', to: 'Musanze', tint: '#0077B6' },
+  { from: 'Kigali', to: 'Rubavu', tint: '#0B3550' },
+  { from: 'Kigali', to: 'Rusizi', tint: '#005F8E' },
+  { from: 'Kigali', to: 'Nyagatare', tint: '#0077B6' },
+] as const;
 
-  date.setDate(date.getDate() + daysUntilSaturday);
+const STEPS = [
+  { icon: 'grid-outline', title: 'Pick your seat' },
+  { icon: 'shield-checkmark-outline', title: 'Pay securely' },
+  { icon: 'navigate-outline', title: 'Track your bus' },
+] as const;
 
-  return date.toISOString().slice(0, 10);
+const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const addDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return d; };
+const nextSaturday = () => { const d = new Date(); const diff = (6 - d.getDay() + 7) % 7; d.setDate(d.getDate() + diff); return d; };
+const prettyDate = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 };
 
-const QUICK_DATES = [
-  {
-    label: "Today",
-    value: getDateString(0),
-  },
-  {
-    label: "Tomorrow",
-    value: getDateString(1),
-  },
-  {
-    label: "Weekend",
-    value: getNextSaturday(),
-  },
-];
+const normalizeTrip = (t: any, from: string, to: string): Trip => ({
+  schedule_id: String(t.schedule_id || t.scheduleId || t.id || ''),
+  route_id: t.route_id || t.routeId || '',
+  bus_id: t.bus_id || t.busId || '',
+  bus_plate: t.bus_plate || t.plate_number || t.busPlate || '',
+  company_name: t.company_name || t.companyName || 'SafariTix operator',
+  pickup_stop: t.pickup_stop || t.from_stop || t.from || from,
+  dropoff_stop: t.dropoff_stop || t.to_stop || t.to || to,
+  departure_date: t.departure_date || t.date || null,
+  departure_time: t.departure_time || t.time || null,
+  available_seats: Number(t.available_seats ?? t.seatsAvailable ?? t.availableSeats ?? 0),
+  price: Number(t.price ?? 0),
+});
+
+/* ---------- presentational pieces ---------- */
+
+function PanelField({
+  label, value, onChangeText, placeholder, inputRef, onSubmit, returnKeyType = 'next', trailing, keyboardType, autoCapitalize = 'words',
+}: {
+  label: string; value: string; onChangeText: (v: string) => void; placeholder: string;
+  inputRef?: React.RefObject<TextInput | null>; onSubmit?: () => void;
+  returnKeyType?: 'next' | 'search'; trailing?: string;
+  keyboardType?: 'default' | 'numbers-and-punctuation'; autoCapitalize?: 'none' | 'words';
+}) {
+  const [focus, setFocus] = useState(false);
+  return (
+    <Pressable style={s.pfield} onPress={() => inputRef?.current?.focus()} accessible={false}>
+      <View style={{ flex: 1 }}>
+        <Text style={[s.pLabel, focus && { color: color.brand }]}>{label}</Text>
+        <TextInput
+          ref={inputRef as any}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#8A9AA9"
+          style={s.pInput}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
+          accessibilityLabel={label.charAt(0) + label.slice(1).toLowerCase()}
+          autoCapitalize={autoCapitalize}
+          autoCorrect={false}
+          keyboardType={keyboardType}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmit}
+          blurOnSubmit={returnKeyType === 'search'}
+        />
+      </View>
+      {trailing ? <Text style={s.pTrailing}>{trailing}</Text> : null}
+    </Pressable>
+  );
+}
+
+function RouteCard({ from, to, tint, onPress }: { from: string; to: string; tint: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Search ${from} to ${to}`}
+      style={({ pressed }) => [s.routeCard, { backgroundColor: tint }, pressed && { opacity: 0.88 }]}
+    >
+      <View style={s.arcOuter} />
+      <View style={s.arcInner} />
+      <Text style={s.routeFrom}>From {from}</Text>
+      <View style={{ flex: 1 }} />
+      <View style={s.routeBottom}>
+        <Text style={s.routeTo} numberOfLines={1}>{to}</Text>
+        <View style={s.routeArrow}>
+          <Ionicons name="arrow-forward" size={16} color="#005F8E" />
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+function TripResult({ trip, onSelect }: { trip: Trip; onSelect: (t: Trip) => void }) {
+  const low = trip.available_seats > 0 && trip.available_seats <= 5;
+  const soldOut = trip.available_seats <= 0;
+  return (
+    <Card style={{ gap: space.md }}>
+      <View style={s.tripTop}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.tripTime}>{trip.departure_time || 'Time TBA'}</Text>
+          <Text style={s.tripCompany} numberOfLines={1}>{trip.company_name}{trip.bus_plate ? ` · ${trip.bus_plate}` : ''}</Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={[s.tripPrice, type.num]}>RWF {trip.price.toLocaleString()}</Text>
+          <Text style={s.tripPer}>per seat</Text>
+        </View>
+      </View>
+
+      <View style={s.tripRoute}>
+        <View style={s.tripRail}>
+          <View style={[s.dot, { backgroundColor: color.brand }]} />
+          <View style={s.railLine} />
+          <View style={[s.dot, { backgroundColor: color.sun }]} />
+        </View>
+        <View style={{ flex: 1, gap: 14 }}>
+          <Text style={s.stop} numberOfLines={1}>{trip.pickup_stop}</Text>
+          <Text style={s.stop} numberOfLines={1}>{trip.dropoff_stop}</Text>
+        </View>
+      </View>
+
+      <View style={s.tripFoot}>
+        {soldOut ? <Pill text="Sold out" tone="bad" /> : low ? <Pill text={`Only ${trip.available_seats} left`} tone="warn" icon="flame" /> : <Pill text={`${trip.available_seats} seats`} tone="ok" icon="people" />}
+        <Button title={soldOut ? 'Unavailable' : 'Select seat'} icon="arrow-forward" compact disabled={soldOut} onPress={() => onSelect(trip)} />
+      </View>
+    </Card>
+  );
+}
+
+/* ---------- screen ---------- */
 
 export default function HomeScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [date, setDate] = useState(getDateString(0));
-const [selectedDateLabel, setSelectedDateLabel] = useState("Today");
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [date, setDate] = useState(toLocalISO(new Date()));
+  const [results, setResults] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [error, setError] = useState('');
+  const [hint, setHint] = useState('');
+  const resultsY = useRef(0);
+  const scroller = useRef<ScrollView>(null);
+  const toRef = useRef<TextInput>(null);
+  const dateRef = useRef<TextInput>(null);
 
-  const handleSearch = () => {
-    if (!from.trim() || !to.trim()) {
-      return;
-    }
+  const fade = useRef(new Animated.Value(0)).current;
+  useEffect(() => { Animated.timing(fade, { toValue: 1, duration: 400, easing: Easing.out(Easing.quad), useNativeDriver: true }).start(); }, [fade]);
 
-    router.push({
-      pathname: "/booking/search",
-      params: {
-        from: from.trim(),
-        to: to.trim(),
-        date,
-      },
-    });
+  const quick = [
+    { label: 'Today', iso: toLocalISO(new Date()) },
+    { label: 'Tomorrow', iso: toLocalISO(addDays(1)) },
+    { label: 'Weekend', iso: toLocalISO(nextSaturday()) },
+  ];
+
+  const swap = () => { setFrom(to); setTo(from); };
+
+  const useShortcut = (r: { from: string; to: string }) => {
+    setFrom(r.from); setTo(r.to); setHint('');
+    scroller.current?.scrollTo({ y: 0, animated: true });
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.brand}>SafariTix</Text>
-            <Text style={styles.greeting}>Where are you going?</Text>
-          </View>
+  const search = async () => {
+    const f = from.trim(), t = to.trim(), d = date.trim();
+    if (!f || !t || !d) { setHint('Enter where from, where to, and a date.'); return; }
+    if (f.toLowerCase() === t.toLowerCase()) { setHint('Origin and destination cannot be the same.'); return; }
+    setHint(''); setError(''); setSearched(true); setLoading(true);
+    setTimeout(() => scroller.current?.scrollTo({ y: Math.max(0, resultsY.current - 12), animated: true }), 80);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30000);
+    try {
+      if (!API_BASE_URL) throw new Error('API is not configured. Please check your connection settings.');
+      const q = new URLSearchParams({ from: f, to: t, date: d });
+      const res = await fetch(`${API_BASE_URL}/search-trips?${q}`, { headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload?.message || payload?.error || `Server error (${res.status}): unable to search buses`);
+      const trips = Array.isArray(payload?.trips) ? payload.trips : [];
+      setResults(trips.map((x: any) => normalizeTrip(x, f, t)).filter((x: Trip) => Boolean(x.schedule_id)));
+    } catch (e: any) {
+      setResults([]);
+      setError(e?.name === 'AbortError' ? 'The search timed out. Please try again.' : e?.message || 'Network error. Check your connection and try again.');
+    } finally { clearTimeout(timer); setLoading(false); }
+  };
 
-          <TouchableOpacity
-            style={styles.notificationButton}
-            onPress={() => navigation.navigate('account' as never)}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="notifications-outline"
-              size={22}
-              color={Colors.text}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Search */}
-        <Card style={styles.searchCard}>
-          <View style={styles.searchTitleRow}>
-            <View style={styles.searchIcon}>
-              <Ionicons name="search" size={20} color={Colors.primary} />
-            </View>
-
-            <View>
-              <Text style={styles.searchTitle}>Find your bus</Text>
-              <Text style={styles.searchSubtitle}>Search available trips</Text>
-            </View>
-          </View>
-
-          <View style={styles.routeInputs}>
-            <Input
-              label="From"
-              placeholder="Departure location"
-              value={from}
-              onChangeText={setFrom}
-              autoCapitalize="words"
-            />
-
-            <View style={styles.swapButton}>
-              <Ionicons name="swap-vertical" size={20} color={Colors.primary} />
-            </View>
-
-            <Input
-              label="To"
-              placeholder="Destination"
-              value={to}
-              onChangeText={setTo}
-              autoCapitalize="words"
-            />
-          </View>
-
-          <Text style={styles.dateLabel}>Travel date</Text>
-
-          <View style={styles.dateOptions}>
-            {QUICK_DATES.map((item) => {
-  const selected = selectedDateLabel === item.label;
+  const select = (trip: Trip) => router.push({
+    pathname: '/seat-map',
+    params: {
+      scheduleId: trip.schedule_id, busId: trip.bus_id, busPlate: trip.bus_plate,
+      from: trip.pickup_stop || from, to: trip.dropoff_stop || to,
+      departureDate: trip.departure_date || date, departureTime: trip.departure_time || '',
+      routeId: trip.route_id, price: String(trip.price || 0),
+    },
+  });
 
   return (
-    <TouchableOpacity
-      key={item.label}
-      onPress={() => {
-        setDate(item.value);
-        setSelectedDateLabel(item.label);
-      }}
-      activeOpacity={0.8}
-      style={[
-        styles.dateOption,
-        selected && styles.dateOptionSelected,
-      ]}
-    >
-      <Text
-        style={[
-          styles.dateOptionText,
-          selected && styles.dateOptionTextSelected,
-        ]}
-      >
-        {item.label}
-      </Text>
-    </TouchableOpacity>
-  );
-})}
+    <SafeAreaView style={s.screen} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          ref={scroller}
+          contentContainerStyle={s.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        >
+          {/* Header */}
+          <View style={s.topBar}>
+            <Logo width={132} height={42} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="My tickets"
+              onPress={() => router.navigate('/trips')}
+              style={({ pressed }) => [s.ticketBtn, pressed && { backgroundColor: '#D3EBF7' }]}
+            >
+              <Ionicons name="ticket-outline" size={18} color="#005F8E" />
+              <Text style={s.ticketBtnText}>My tickets</Text>
+            </Pressable>
           </View>
 
-          <Button
-            title="Search Buses"
-            onPress={handleSearch}
-            disabled={!from.trim() || !to.trim()}
-            style={styles.searchButton}
-          />
-        </Card>
-
-        {/* Quick actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick access</Text>
-
-          <View style={styles.quickActions}>
-            <QuickAction
-              icon="ticket-outline"
-              title="My Tickets"
-              onPress={() => router.navigate('/tickets')}
-            />
-
-            <QuickAction
-              icon="navigate-outline"
-              title="Track Bus"
-              onPress={() => navigation.navigate('track' as never)}
-            />
-
-            <QuickAction
-              icon="help-circle-outline"
-              title="Help"
-              onPress={() => router.push("/support/contact")}
-            />
-          </View>
-        </View>
-
-        {/* Upcoming trip placeholder */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Your next trip</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('trips' as never)}>
-              <Text style={styles.seeAll}>View all</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Card style={styles.emptyCard}>
-            <View style={styles.emptyIcon}>
-              <Ionicons name="bus-outline" size={28} color={Colors.primary} />
+          <Animated.View style={{ opacity: fade }}>
+            {/* Editorial headline */}
+            <View style={s.headlineWrap}>
+              <Text style={s.headline} accessibilityRole="header">Where are you{'\n'}going today?</Text>
+              <Text style={s.lede}>Search buses, choose your seat and keep your ticket on your phone.</Text>
             </View>
 
-            <Text style={styles.emptyTitle}>No upcoming trips</Text>
+            {/* Booking panel */}
+            <View style={s.panel}>
+              <View style={s.routeBlock}>
+                <View style={s.rail}>
+                  <View style={[s.railDot, { backgroundColor: color.brand }]} />
+                  <View style={s.railDash} />
+                  <View style={[s.railDot, s.railPin]} />
+                </View>
 
-            <Text style={styles.emptyText}>
-              Your booked trips will appear here.
-            </Text>
-          </Card>
-        </View>
+                <View style={{ flex: 1 }}>
+                  <PanelField
+                    label="FROM" value={from} onChangeText={setFrom} placeholder="Departure city"
+                    onSubmit={() => toRef.current?.focus()}
+                  />
+                  <View style={s.hair} />
+                  <PanelField
+                    label="TO" value={to} onChangeText={setTo} placeholder="Destination city"
+                    inputRef={toRef} onSubmit={() => dateRef.current?.focus()}
+                  />
+                </View>
 
-        {/* Trust */}
-        <View style={styles.trustRow}>
-          <TrustItem icon="shield-checkmark-outline" text="Secure booking" />
-          <TrustItem icon="time-outline" text="Live schedules" />
-          <TrustItem icon="qr-code-outline" text="Digital tickets" />
-        </View>
-      </ScrollView>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Swap origin and destination"
+                  onPress={swap}
+                  hitSlop={6}
+                  style={({ pressed }) => [s.swap, pressed && { backgroundColor: '#E6F4FB' }]}
+                >
+                  <Ionicons name="swap-vertical" size={20} color={color.brand} />
+                </Pressable>
+              </View>
+
+              <View style={s.hairFull} />
+
+              <View style={s.dateBlock}>
+                <Ionicons name="calendar-outline" size={20} color="#005F8E" style={{ marginRight: 14 }} />
+                <PanelField
+                  label="DEPARTURE DATE" value={date} onChangeText={setDate} placeholder="YYYY-MM-DD"
+                  inputRef={dateRef} returnKeyType="search" onSubmit={search}
+                  keyboardType="numbers-and-punctuation" autoCapitalize="none"
+                  trailing={ISO_RE.test(date.trim()) ? prettyDate(date.trim()) : undefined}
+                />
+              </View>
+
+              <View style={s.segment} accessibilityRole="tablist">
+                {quick.map((q) => {
+                  const on = date === q.iso;
+                  return (
+                    <Pressable
+                      key={q.label}
+                      onPress={() => setDate(q.iso)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: on }}
+                      style={[s.segItem, on && s.segItemOn]}
+                    >
+                      <Text style={[s.segText, on && s.segTextOn]}>{q.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <Button title="Search buses" icon="search" variant="sun" onPress={search} loading={loading} />
+
+              {hint ? (
+                <View style={s.hintRow} accessibilityLiveRegion="polite">
+                  <Ionicons name="alert-circle" size={16} color="#B45309" />
+                  <Text style={s.hint}>{hint}</Text>
+                </View>
+              ) : null}
+            </View>
+          </Animated.View>
+
+          {/* Results */}
+          <View onLayout={(e) => { resultsY.current = e.nativeEvent.layout.y; }} style={{ gap: space.md }}>
+            {searched ? (
+              <>
+                <SectionTitle
+                  title={
+                    loading
+                      ? 'Finding your ride...'
+                      : results.length
+                        ? `${results.length} bus${results.length > 1 ? 'es' : ''} · ${prettyDate(date)}`
+                        : 'Search results'
+                  }
+                />
+                {loading ? (
+                  <>
+                    <Skeleton height={176} />
+                    <Skeleton height={176} />
+                  </>
+                ) : error ? (
+                  <Card>
+                    <EmptyState icon="cloud-offline-outline" title="Couldn't load buses" text={error} actionLabel="Try again" onAction={search} />
+                  </Card>
+                ) : results.length === 0 ? (
+                  <Card>
+                    <EmptyState icon="calendar-outline" title="No buses found" text="Try another travel date or check your route." />
+                  </Card>
+                ) : (
+                  results.map((trip) => <TripResult key={trip.schedule_id} trip={trip} onSelect={select} />)
+                )}
+              </>
+            ) : null}
+          </View>
+
+          {/* Discovery (before first search) */}
+          {!searched ? (
+            <>
+              <View>
+                <View style={s.sectionHead}>
+                  <Text style={s.sectionTitle}>Start from a route</Text>
+                  <Text style={s.sectionSub}>Tap to fill in your trip</Text>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={s.routeRow}
+                  style={s.routeScroll}
+                >
+                  {ROUTE_SHORTCUTS.map((r) => (
+                    <RouteCard key={`${r.from}-${r.to}`} from={r.from} to={r.to} tint={r.tint} onPress={() => useShortcut(r)} />
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={s.trust}>
+                {STEPS.map((p, i) => (
+                  <View key={p.title} style={[s.trustItem, i > 0 && s.trustDivider]}>
+                    <View style={s.trustIcon}>
+                      <Ionicons name={p.icon} size={20} color="#005F8E" />
+                    </View>
+                    <Text style={s.trustText}>{p.title}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : null}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-function QuickAction({
-  icon,
-  title,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      style={styles.quickAction}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <View style={styles.quickActionIcon}>
-        <Ionicons name={icon} size={22} color={Colors.primary} />
-      </View>
+/* ---------- styles ---------- */
 
-      <Text style={styles.quickActionText}>{title}</Text>
-    </TouchableOpacity>
-  );
-}
+const INK = '#0B2236';
 
-function TrustItem({
-  icon,
-  text,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  text: string;
-}) {
-  return (
-    <View style={styles.trustItem}>
-      <Ionicons name={icon} size={17} color={Colors.success} />
-      <Text style={styles.trustText}>{text}</Text>
-    </View>
-  );
-}
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: '#FFFFFF' },
+  content: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 44, gap: 28 },
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  ticketBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 7, minHeight: 44,
+    paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#E6F4FB',
   },
+  ticketBtnText: { color: '#005F8E', fontSize: 14, fontWeight: '800' },
 
-  content: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xxxl,
+  headlineWrap: { gap: 10, marginBottom: 22 },
+  headline: { color: INK, fontSize: 34, lineHeight: 40, fontWeight: '800', letterSpacing: -1 },
+  lede: { color: '#526779', fontSize: 15, lineHeight: 22, maxWidth: 320 },
+
+  panel: {
+    backgroundColor: '#FFFFFF', borderRadius: 22, padding: 16, gap: 14,
+    borderWidth: 1, borderColor: '#DCE6EE',
+    shadowColor: '#0B3550', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.09, shadowRadius: 20, elevation: 5,
   },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.xl,
+  routeBlock: { flexDirection: 'row', alignItems: 'center' },
+  rail: { width: 22, height: 121, alignItems: 'center', paddingVertical: 25, marginRight: 10 },
+  railDot: { width: 10, height: 10, borderRadius: 5 },
+  railPin: { backgroundColor: color.sun, borderRadius: 2, transform: [{ rotate: '45deg' }] },
+  railDash: { flex: 1, width: 0, borderLeftWidth: 1.5, borderStyle: 'dashed', borderColor: '#9CC9E2', marginVertical: 4 },
+  pfield: { height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  pLabel: { color: '#6B7C8C', fontSize: 11, fontWeight: '700', marginBottom: 2 },
+  pInput: { color: INK, fontSize: 17, fontWeight: '700', paddingVertical: 2 },
+  pTrailing: { color: '#005F8E', fontSize: 13, fontWeight: '700', marginLeft: 8 },
+  hair: { height: 1, backgroundColor: '#E3EBF2' },
+  hairFull: { height: 1, backgroundColor: '#E3EBF2' },
+  swap: {
+    width: 44, height: 44, borderRadius: 22, marginLeft: 8, backgroundColor: '#FFFFFF',
+    borderWidth: 1.5, borderColor: '#BFDDEE', alignItems: 'center', justifyContent: 'center',
   },
+  dateBlock: { flexDirection: 'row', alignItems: 'center', paddingLeft: 2 },
 
-  brand: {
-    ...Typography.heading3,
-    color: Colors.primary,
-  },
+  segment: { flexDirection: 'row', backgroundColor: '#EEF3F8', borderRadius: 14, padding: 4 },
+  segItem: { flex: 1, minHeight: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  segItemOn: { backgroundColor: '#FFFFFF', shadowColor: '#0B3550', shadowOpacity: 0.12, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+  segText: { color: '#526779', fontSize: 13, fontWeight: '700' },
+  segTextOn: { color: '#005F8E' },
 
-  greeting: {
-    ...Typography.heading1,
-    color: Colors.text,
-    marginTop: 2,
-  },
+  hintRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  hint: { color: '#B45309', fontSize: 13, fontWeight: '700', flexShrink: 1 },
 
-  notificationButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: Colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    ...Shadows.small,
-  },
+  sectionHead: { marginBottom: 14, gap: 3 },
+  sectionTitle: { color: INK, fontSize: 21, fontWeight: '800', letterSpacing: -0.4 },
+  sectionSub: { color: '#6B7C8C', fontSize: 13 },
+  routeScroll: { marginHorizontal: -20 },
+  routeRow: { paddingHorizontal: 20, gap: 12 },
+  routeCard: { width: 170, height: 132, borderRadius: 20, padding: 16, overflow: 'hidden' },
+  arcOuter: { position: 'absolute', right: -50, top: -50, width: 140, height: 140, borderRadius: 70, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.16)' },
+  arcInner: { position: 'absolute', right: -20, top: -20, width: 80, height: 80, borderRadius: 40, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.22)' },
+  routeFrom: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '600' },
+  routeBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  routeTo: { flex: 1, color: '#FFFFFF', fontSize: 22, fontWeight: '800', letterSpacing: -0.4 },
+  routeArrow: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
 
-  searchCard: {
-    padding: Spacing.xl,
-  },
+  trust: { flexDirection: 'row', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E3EBF2', paddingVertical: 16 },
+  trustItem: { flex: 1, alignItems: 'center', gap: 8, paddingHorizontal: 6 },
+  trustDivider: { borderLeftWidth: 1, borderLeftColor: '#E3EBF2' },
+  trustIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#E6F4FB', alignItems: 'center', justifyContent: 'center' },
+  trustText: { color: INK, fontSize: 12, fontWeight: '700', textAlign: 'center' },
 
-  searchTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: Spacing.xl,
-  },
-
-  searchIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: Spacing.md,
-  },
-
-  searchTitle: {
-    ...Typography.heading3,
-    color: Colors.text,
-  },
-
-  searchSubtitle: {
-    ...Typography.small,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-
-  routeInputs: {
-    position: "relative",
-  },
-
-  swapButton: {
-    position: "absolute",
-    right: 14,
-    top: 43,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 2,
-  },
-
-  dateLabel: {
-    ...Typography.smallMedium,
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-  },
-
-  dateOptions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-
-  dateOption: {
-    flex: 1,
-    minHeight: 42,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.surface,
-  },
-
-  dateOptionSelected: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.primary,
-  },
-
-  dateOptionText: {
-    ...Typography.smallMedium,
-    color: Colors.textSecondary,
-  },
-
-  dateOptionTextSelected: {
-    color: Colors.primary,
-  },
-
-  searchButton: {
-    marginTop: Spacing.sm,
-  },
-
-  section: {
-    marginTop: Spacing.xxxl,
-  },
-
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-
-  sectionTitle: {
-    ...Typography.heading3,
-    color: Colors.text,
-  },
-
-  seeAll: {
-    ...Typography.smallMedium,
-    color: Colors.primary,
-  },
-
-  quickActions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-
-  quickAction: {
-    flex: 1,
-    minHeight: 96,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    ...Shadows.small,
-  },
-
-  quickActionIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: Colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: Spacing.sm,
-  },
-
-  quickActionText: {
-    ...Typography.caption,
-    color: Colors.text,
-  },
-
-  emptyCard: {
-    alignItems: "center",
-    paddingVertical: Spacing.xxl,
-  },
-
-  emptyIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: Spacing.md,
-  },
-
-  emptyTitle: {
-    ...Typography.bodyMedium,
-    color: Colors.text,
-  },
-
-  emptyText: {
-    ...Typography.small,
-    color: Colors.textMuted,
-    marginTop: Spacing.xs,
-    textAlign: "center",
-  },
-
-  trustRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: Spacing.xxxl,
-    paddingHorizontal: Spacing.xs,
-  },
-
-  trustItem: {
-    alignItems: "center",
-    gap: 4,
-  },
-
-  trustText: {
-    ...Typography.caption,
-    color: Colors.textMuted,
+  tripTop: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
+  tripTime: { fontSize: 24, fontWeight: '800', color: color.ink, letterSpacing: -0.5 },
+  tripCompany: { ...type.small, color: color.sub, marginTop: 3 },
+  tripPrice: { fontSize: 18, fontWeight: '900', color: color.brand },
+  tripPer: { ...type.small, color: color.muted, fontSize: 11 },
+  tripRoute: { flexDirection: 'row', gap: space.md, paddingVertical: 2 },
+  tripRail: { alignItems: 'center', paddingVertical: 5 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  railLine: { flex: 1, width: 0, borderLeftWidth: 1.5, borderStyle: 'dashed', borderColor: color.brandMid, marginVertical: 3 },
+  stop: { fontSize: 15, fontWeight: '700', color: color.ink },
+  tripFoot: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderTopWidth: 1, borderTopColor: color.lineSoft, paddingTop: space.md, gap: 8,
   },
 });

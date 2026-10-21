@@ -402,7 +402,7 @@ export default function ContactUsPage() {
       return;
     }
     if (key === 'tickets') {
-      router.push('/my-tickets');
+      router.push('/(main)/trips');
       return;
     }
   };

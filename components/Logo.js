@@ -6,8 +6,8 @@ const logoSource = require('../assets/images/SafariTix-Logo.png');
 export default function Logo({
   width = 168,
   height = 56,
-  style,
-  imageStyle,
+  style = undefined,
+  imageStyle = undefined,
 }) {
   return (
     <View style={[styles.container, { width, height }, style]}>
