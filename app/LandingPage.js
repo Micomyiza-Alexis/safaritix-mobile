@@ -91,6 +91,7 @@ const MENU_ITEMS = [
   { key: 'search',  label: 'Search Bus', icon: 'search-outline',   primary: true  },
   { key: 'tickets', label: 'My Tickets', icon: 'receipt-outline',  primary: false },
   { key: 'track',   label: 'Track Bus',  icon: 'navigate-outline', primary: false },
+  { key: 'account', label: 'Account',    icon: 'person-outline',   primary: false },
   { key: 'contact', label: 'Contact Us', icon: 'call-outline',     primary: false },
 ];
 
@@ -601,10 +602,16 @@ export default function LandingPage() {
 
   const handleMenuSelect = (item) => {
     closeMenu();
-    const routes = { home: '/LandingPage', tickets: '/my-tickets', track: '/my-tickets', contact: '/contact-us' };
+    const routes = {
+      home: '/(main)',
+      tickets: '/(main)/trips',
+      track: '/(main)/track',
+      account: '/(main)/account',
+      contact: '/support/contact',
+    };
     if (item.key === 'search') { handleFindBus(); return; }
     if (routes[item.key]) { router.push(routes[item.key]); return; }
-    router.push('/(tabs)');
+    router.push('/(main)');
   };
 
   // ─── Render ────────────────────────────────────────────────────────────────

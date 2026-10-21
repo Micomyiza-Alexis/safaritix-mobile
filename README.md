@@ -23,6 +23,25 @@ In the output, you'll find options to open the app in a
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
+## Native map configuration
+
+The Track Bus screen uses `react-native-maps`. For Android Google map tiles, provide
+the build-time environment variable `GOOGLE_MAPS_ANDROID_API_KEY` (or
+`EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY`) before creating/rebuilding the native app.
+`GOOGLE_MAPS_API_KEY` remains supported as a shared fallback. When no native key is
+set, `app.config.js` reads the existing local web value from
+`../project_safatiTix-developer/.env.local` and then `.env.production`; that fallback
+must be an Android-authorized key, not a key restricted only to web referrers.
+
+The key is consumed by the Expo config plugin and is not stored in source control.
+The Android key must allow the `com.anonymous.safaritixmobile` package and the
+development/release certificate SHA-1 fingerprints, with Maps SDK for Android
+enabled. A key restricted only to web HTTP referrers will not work for Android.
+
+After changing this value, rebuild the development client with `npx expo run:android`
+or the equivalent EAS build; an already-installed binary will not receive native
+configuration changes automatically.
+
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
 ## Get a fresh project

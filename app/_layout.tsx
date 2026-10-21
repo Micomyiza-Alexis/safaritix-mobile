@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter, useSegments } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useEffect } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 import "react-native-reanimated";
 import { useAuthStore } from '@/stores/authStore';
 
@@ -10,6 +11,12 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const { isAuthenticated, isInitialized, initialize } = useAuthStore();
+
+  useEffect(() => {
+    // Do not leave users on the native launch screen if Expo's automatic
+    // dismissal is delayed while the router is mounting.
+    SplashScreen.hideAsync().catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (!isInitialized) {
@@ -21,9 +28,12 @@ export default function RootLayout() {
     if (!isInitialized) return;
 
     const inAuth = segments[0] === 'auth';
-    if (!isAuthenticated && !inAuth) {
-      router.replace('/auth/login');
-    } else if (isAuthenticated && inAuth) {
+    const isPublicEntry = !segments[0] || segments[0] === 'LandingPage';
+    if (!isAuthenticated && !inAuth && !isPublicEntry) {
+      router.replace('/');
+    } else if (isAuthenticated && inAuth && segments[1] !== 'reset-password') {
+      router.replace('/(main)');
+    } else if (isAuthenticated && isPublicEntry) {
       router.replace('/(main)');
     }
   }, [isAuthenticated, isInitialized, router, segments]);
@@ -36,8 +46,11 @@ export default function RootLayout() {
     <>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(main)" />
+        <Stack.Screen name="index" />
         <Stack.Screen name="auth/login" />
         <Stack.Screen name="auth/register" />
+        <Stack.Screen name="auth/forgot-password" />
+        <Stack.Screen name="auth/reset-password" />
 
         {/* Booking */}
         <Stack.Screen name="booking/search" />
@@ -47,7 +60,7 @@ export default function RootLayout() {
         <Stack.Screen name="tickets/[id]" />
         <Stack.Screen name="support/contact" />
 
-        {/* Legacy screens — temporary during migration */}
+        {/* Legacy screens Ã¢â‚¬â€ temporary during migration */}
         <Stack.Screen name="LandingPage" />
         <Stack.Screen name="my-tickets" />
         <Stack.Screen name="track-bus" />

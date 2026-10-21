@@ -141,3 +141,25 @@ export async function getCurrentUser(): Promise<AuthUser> {
 
   return response.user;
 }
+
+export interface PasswordResetResponse {
+  message: string;
+}
+
+export async function requestPasswordReset(
+  email: string,
+): Promise<PasswordResetResponse> {
+  return api.post<PasswordResetResponse>('/auth/forgot-password', {
+    email: email.trim().toLowerCase(),
+  });
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<PasswordResetResponse> {
+  return api.post<PasswordResetResponse>('/auth/reset-password', {
+    token: token.trim(),
+    newPassword,
+  });
+}

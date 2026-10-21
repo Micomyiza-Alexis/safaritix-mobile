@@ -1,39 +1,22 @@
-import { useEffect } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/authStore';
 
 export default function AccountScreen() {
-  const router = useRouter();
-  const { user, isInitialized, initialize, logout } = useAuthStore();
-  useEffect(() => { if (!isInitialized) initialize(); }, [isInitialized, initialize]);
-  if (!isInitialized) return <View style={styles.center}><ActivityIndicator color="#0077B6" /></View>;
-  const handleLogout = async () => { await logout(); router.replace('/auth/login'); };
-  return <View style={styles.container}><Text style={styles.title}>Account</Text>{user ? <><Text style={styles.name}>{user.name}</Text><Text style={styles.subtitle}>{user.email}</Text><Text style={styles.subtitle}>{user.phone || 'No phone number'}</Text><Pressable style={styles.button} onPress={handleLogout}><Text style={styles.buttonText}>Log out</Text></Pressable></> : <><Text style={styles.subtitle}>Sign in to access your authenticated commuter profile and trips.</Text><Pressable style={styles.button} onPress={() => router.push('/auth/login')}><Text style={styles.buttonText}>Sign in</Text></Pressable></>}</View>;
+  const router = useRouter(); const { user, isLoading, logout } = useAuthStore(); const [loggingOut, setLoggingOut] = useState(false);
+  if (isLoading && !user) return <View style={styles.center}><ActivityIndicator color="#0077B6" /></View>;
+  if (!user) return <View style={styles.center}><Text style={styles.title}>Your account</Text><Text style={styles.muted}>Sign in to access your trips and tickets.</Text><Pressable style={styles.primary} onPress={() => router.replace('/auth/login')}><Text style={styles.primaryText}>Log in</Text></Pressable></View>;
+  const initials = (user.name || user.email || 'S').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  const handleLogout = async () => { setLoggingOut(true); try { await logout(); router.replace('/'); } finally { setLoggingOut(false); } };
+  return <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <Text style={styles.eyebrow}>SAFARITIX ACCOUNT</Text><Text style={styles.title}>Your profile</Text>
+    <View style={styles.profile}><View style={styles.avatar}>{user.avatar_url ? <Image source={{ uri: user.avatar_url }} style={styles.avatarImage} /> : <Text style={styles.initials}>{initials}</Text>}</View><View style={{ flex: 1 }}><Text style={styles.name}>{user.name || 'SafariTix commuter'}</Text><Text style={styles.email}>{user.email || 'Email not provided'}</Text>{user.phone ? <Text style={styles.phone}>{user.phone}</Text> : null}</View></View>
+    {user.accountStatus ? <View style={styles.status}><Ionicons name="checkmark-circle-outline" size={18} color="#166534" /><Text style={styles.statusText}>Account {user.accountStatus}</Text></View> : null}
+    <Text style={styles.sectionTitle}>Account menu</Text><View style={styles.menu}><MenuItem icon="person-outline" title="Personal information" subtitle="Details from your commuter account" /><MenuItem icon="ticket-outline" title="My trips" onPress={() => router.navigate('/trips')} /><MenuItem icon="navigate-outline" title="Bus tracking" onPress={() => router.navigate('/track')} /><MenuItem icon="help-circle-outline" title="Help and support" onPress={() => router.push('/support/contact')} /></View>
+    <Pressable style={styles.logout} onPress={handleLogout} disabled={loggingOut}><Ionicons name="log-out-outline" size={20} color="#B42318" />{loggingOut ? <ActivityIndicator color="#B42318" /> : <Text style={styles.logoutText}>Log out</Text>}</Pressable>
+  </ScrollView>;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#F8FAFC',
-  },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: {
-    marginTop: 16,
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  subtitle: {
-    marginTop: 8,
-    fontSize: 15,
-    textAlign: 'center',
-    color: '#64748B',
-  },
-  name: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
-  button: { marginTop: 16, minHeight: 50, borderRadius: 12, backgroundColor: '#0077B6', alignItems: 'center', justifyContent: 'center' },
-  buttonText: { color: '#FFF', fontWeight: '800' },
-});
+function MenuItem({ icon, title, subtitle, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; subtitle?: string; onPress?: () => void }) { return <Pressable style={styles.menuItem} onPress={onPress} disabled={!onPress}><View style={styles.menuIcon}><Ionicons name={icon} size={20} color="#0077B6" /></View><View style={{ flex: 1 }}><Text style={styles.menuTitle}>{title}</Text>{subtitle ? <Text style={styles.menuSubtitle}>{subtitle}</Text> : null}</View>{onPress ? <Ionicons name="chevron-forward" size={18} color="#94A3B8" /> : null}</Pressable>; }
+const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: '#F8FAFC' }, content: { padding: 20, paddingTop: 34, paddingBottom: 40 }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#F8FAFC' }, eyebrow: { color: '#0077B6', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 }, title: { color: '#0F172A', fontSize: 30, fontWeight: '900', marginTop: 5 }, muted: { color: '#64748B', textAlign: 'center', marginTop: 10 }, profile: { backgroundColor: '#FFF', borderRadius: 20, borderWidth: 1, borderColor: '#E2E8F0', padding: 18, marginTop: 22, flexDirection: 'row', alignItems: 'center', gap: 14 }, avatar: { width: 66, height: 66, borderRadius: 33, backgroundColor: '#E6F4FB', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, avatarImage: { width: '100%', height: '100%' }, initials: { color: '#0077B6', fontSize: 22, fontWeight: '900' }, name: { color: '#0F172A', fontSize: 19, fontWeight: '900' }, email: { color: '#475569', fontSize: 13, marginTop: 5 }, phone: { color: '#64748B', fontSize: 13, marginTop: 3 }, status: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', backgroundColor: '#DCFCE7', borderRadius: 99, paddingHorizontal: 10, paddingVertical: 6, marginTop: 12 }, statusText: { color: '#166534', fontSize: 12, fontWeight: '700' }, sectionTitle: { color: '#0F172A', fontSize: 17, fontWeight: '800', marginTop: 28, marginBottom: 10 }, menu: { backgroundColor: '#FFF', borderRadius: 18, borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden' }, menuItem: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }, menuIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#E6F4FB', alignItems: 'center', justifyContent: 'center' }, menuTitle: { color: '#0F172A', fontWeight: '800', fontSize: 14 }, menuSubtitle: { color: '#64748B', fontSize: 12, marginTop: 3 }, primary: { backgroundColor: '#0077B6', borderRadius: 12, paddingHorizontal: 28, paddingVertical: 13, marginTop: 18 }, primaryText: { color: '#FFF', fontWeight: '800' }, logout: { minHeight: 54, borderRadius: 14, backgroundColor: '#FFF1F2', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginTop: 24 }, logoutText: { color: '#B42318', fontWeight: '800' } });
