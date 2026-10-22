@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { API_BASE_URL } from '@/config/api';
@@ -126,37 +127,116 @@ function RouteCard({ from, to, tint, onPress }: { from: string; to: string; tint
   );
 }
 
-function TripResult({ trip, onSelect }: { trip: Trip; onSelect: (t: Trip) => void }) {
+
+function TripResult({
+  trip,
+  onSelect,
+}: {
+  trip: Trip;
+  onSelect: (t: Trip) => void;
+}) {
   const low = trip.available_seats > 0 && trip.available_seats <= 5;
   const soldOut = trip.available_seats <= 0;
+
   return (
-    <Card style={{ gap: space.md }}>
-      <View style={s.tripTop}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.tripTime}>{trip.departure_time || 'Time TBA'}</Text>
-          <Text style={s.tripCompany} numberOfLines={1}>{trip.company_name}{trip.bus_plate ? ` · ${trip.bus_plate}` : ''}</Text>
+    <Card style={s.tripCard}>
+      {/* Operator and price */}
+      <View style={s.tripCardHeader}>
+        <View style={s.tripOperator}>
+          <View style={s.tripBusIcon}>
+            <Ionicons name="bus-outline" size={21} color={color.brand} />
+          </View>
+
+          <View style={s.tripOperatorInfo}>
+            <Text style={s.tripCompany} numberOfLines={1}>
+              {trip.company_name || "Bus operator"}
+            </Text>
+            {!!trip.bus_plate && (
+              <Text style={s.tripPlate}>{trip.bus_plate}</Text>
+            )}
+          </View>
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={[s.tripPrice, type.num]}>RWF {trip.price.toLocaleString()}</Text>
+
+        <View style={s.tripPriceBlock}>
+          <Text style={[s.tripPrice, type.num]}>
+            {`RWF ${trip.price.toLocaleString()}`}
+          </Text>
           <Text style={s.tripPer}>per seat</Text>
         </View>
       </View>
 
-      <View style={s.tripRoute}>
-        <View style={s.tripRail}>
-          <View style={[s.dot, { backgroundColor: color.brand }]} />
-          <View style={s.railLine} />
-          <View style={[s.dot, { backgroundColor: color.sun }]} />
+      <View style={s.tripCardDivider} />
+
+      {/* Departure time and route */}
+      <View style={s.tripJourney}>
+        <View style={s.tripDeparture}>
+          <Text style={s.tripTime}>
+            {trip.departure_time || "Time TBA"}
+          </Text>
+          <Text style={s.tripTimeCaption}>Departure</Text>
         </View>
-        <View style={{ flex: 1, gap: 14 }}>
-          <Text style={s.stop} numberOfLines={1}>{trip.pickup_stop}</Text>
-          <Text style={s.stop} numberOfLines={1}>{trip.dropoff_stop}</Text>
+
+        <View style={s.tripRouteVisual}>
+          <View style={[s.tripRouteDot, { backgroundColor: color.brand }]} />
+          <View style={s.tripRouteDash} />
+          <Ionicons
+            name="bus-outline"
+            size={17}
+            color={color.brand}
+          />
+          <View style={s.tripRouteDash} />
+          <View style={[s.tripRouteDot, { backgroundColor: color.sun }]} />
+        </View>
+
+        <View style={s.tripStops}>
+          <Text style={s.tripStop} numberOfLines={1}>
+            {trip.pickup_stop}
+          </Text>
+          <Text style={s.tripStop} numberOfLines={1}>
+            {trip.dropoff_stop}
+          </Text>
         </View>
       </View>
 
-      <View style={s.tripFoot}>
-        {soldOut ? <Pill text="Sold out" tone="bad" /> : low ? <Pill text={`Only ${trip.available_seats} left`} tone="warn" icon="flame" /> : <Pill text={`${trip.available_seats} seats`} tone="ok" icon="people" />}
-        <Button title={soldOut ? 'Unavailable' : 'Select seat'} icon="arrow-forward" compact disabled={soldOut} onPress={() => onSelect(trip)} />
+      <View style={s.tripCardDivider} />
+
+      {/* Availability and action */}
+      <View style={s.tripCardFooter}>
+        <View style={s.tripAvailability}>
+          <View
+            style={[
+              s.tripAvailabilityDot,
+              {
+                backgroundColor: soldOut
+                  ? "#D64545"
+                  : low
+                    ? "#E89A22"
+                    : "#1C9A68",
+              },
+            ]}
+          />
+          <Text
+            style={[
+              s.tripAvailabilityText,
+              soldOut && { color: "#D64545" },
+              low && { color: "#B87512" },
+            ]}
+          >
+            {soldOut
+              ? "Sold out"
+              : low
+                ? `Only ${trip.available_seats} left`
+                : `${trip.available_seats} seats available`}
+          </Text>
+        </View>
+
+        <Button
+          title={soldOut ? "Unavailable" : "Select trip"}
+          icon="arrow-forward"
+          compact
+          disabled={soldOut}
+          onPress={() => onSelect(trip)}
+        />
       </View>
     </Card>
   );
@@ -229,18 +309,23 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={s.screen} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={TINT} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           ref={scroller}
+          style={s.scroll}
           contentContainerStyle={s.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         >
+          <LinearGradient colors={[TINT, '#F3FAFD', '#FFFFFF']} style={s.topBg} pointerEvents="none" />
+
           {/* Header */}
           <View style={s.topBar}>
-            <Logo width={132} height={42} />
+            <View style={s.logoTile}>
+              <Logo width={46} height={52} />
+            </View>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="My tickets"
@@ -255,7 +340,10 @@ export default function HomeScreen() {
           <Animated.View style={{ opacity: fade }}>
             {/* Editorial headline */}
             <View style={s.headlineWrap}>
-              <Text style={s.headline} accessibilityRole="header">Where are you{'\n'}going today?</Text>
+              <Text style={s.headline} accessibilityRole="header">
+                Where are you{'\n'}
+                <Text style={s.headlineAccent}>going today?</Text>
+              </Text>
               <Text style={s.lede}>Search buses, choose your seat and keep your ticket on your phone.</Text>
             </View>
 
@@ -295,12 +383,14 @@ export default function HomeScreen() {
 
               <View style={s.dateBlock}>
                 <Ionicons name="calendar-outline" size={20} color="#005F8E" style={{ marginRight: 14 }} />
-                <PanelField
-                  label="DEPARTURE DATE" value={date} onChangeText={setDate} placeholder="YYYY-MM-DD"
-                  inputRef={dateRef} returnKeyType="search" onSubmit={search}
-                  keyboardType="numbers-and-punctuation" autoCapitalize="none"
-                  trailing={ISO_RE.test(date.trim()) ? prettyDate(date.trim()) : undefined}
-                />
+                <View style={{ flex: 1 }}>
+                  <PanelField
+                    label="DEPARTURE DATE" value={date} onChangeText={setDate} placeholder="YYYY-MM-DD"
+                    inputRef={dateRef} returnKeyType="search" onSubmit={search}
+                    keyboardType="numbers-and-punctuation" autoCapitalize="none"
+                    trailing={ISO_RE.test(date.trim()) ? prettyDate(date.trim()) : undefined}
+                  />
+                </View>
               </View>
 
               <View style={s.segment} accessibilityRole="tablist">
@@ -406,20 +496,29 @@ export default function HomeScreen() {
 /* ---------- styles ---------- */
 
 const INK = '#0B2236';
+const TINT = '#E3F3FB';
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#FFFFFF' },
+  screen: { flex: 1, backgroundColor: TINT },
+  scroll: { backgroundColor: '#FFFFFF' },
+  topBg: { position: 'absolute', top: 0, left: 0, right: 0, height: 330 },
   content: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 44, gap: 28 },
 
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  logoTile: {
+    width: 60, height: 60, borderRadius: 18, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: '#CFE6F3',
+    shadowColor: '#0B3550', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 2,
+  },
   ticketBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 7, minHeight: 44,
-    paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#E6F4FB',
+    paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CFE6F3',
   },
   ticketBtnText: { color: '#005F8E', fontSize: 14, fontWeight: '800' },
 
-  headlineWrap: { gap: 10, marginBottom: 22 },
-  headline: { color: INK, fontSize: 34, lineHeight: 40, fontWeight: '800', letterSpacing: -1 },
+  headlineWrap: { gap: 10, marginTop: -4, marginBottom: 22 },
+  headline: { color: INK, fontSize: 30, lineHeight: 36, fontWeight: '800', letterSpacing: -0.8 },
+  headlineAccent: { color: '#0077B6' },
   lede: { color: '#526779', fontSize: 15, lineHeight: 22, maxWidth: 320 },
 
   panel: {
@@ -434,7 +533,7 @@ const s = StyleSheet.create({
   railDash: { flex: 1, width: 0, borderLeftWidth: 1.5, borderStyle: 'dashed', borderColor: '#9CC9E2', marginVertical: 4 },
   pfield: { height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   pLabel: { color: '#6B7C8C', fontSize: 11, fontWeight: '700', marginBottom: 2 },
-  pInput: { color: INK, fontSize: 17, fontWeight: '700', paddingVertical: 2 },
+  pInput: { color: INK, fontSize: 17, fontWeight: '700', paddingHorizontal: 0, paddingVertical: 2, includeFontPadding: false },
   pTrailing: { color: '#005F8E', fontSize: 13, fontWeight: '700', marginLeft: 8 },
   hair: { height: 1, backgroundColor: '#E3EBF2' },
   hairFull: { height: 1, backgroundColor: '#E3EBF2' },
@@ -485,5 +584,121 @@ const s = StyleSheet.create({
   tripFoot: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     borderTopWidth: 1, borderTopColor: color.lineSoft, paddingTop: space.md, gap: 8,
+  },
+
+  tripCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    padding: 17,
+    gap: 14,
+    borderWidth: 1,
+    borderColor: "#E4EBF1",
+    shadowColor: "#102A43",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.045,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  tripCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  tripOperator: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0,
+  },
+  tripBusIcon: {
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    backgroundColor: "#E6F4FB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tripOperatorInfo: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0,
+  },
+  tripPlate: {
+    color: "#718496",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  tripPriceBlock: {
+    alignItems: "flex-end",
+    gap: 3,
+  },
+  tripCardDivider: {
+    height: 1,
+    backgroundColor: "#EDF1F5",
+  },
+  tripJourney: {
+    gap: 12,
+  },
+  tripDeparture: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+  },
+  tripTimeCaption: {
+    color: "#8494A3",
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  tripRouteVisual: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingHorizontal: 2,
+  },
+  tripRouteDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+  },
+  tripRouteDash: {
+    flex: 1,
+    height: 1,
+    borderStyle: "dashed",
+    borderTopWidth: 1,
+    borderColor: "#C9D6E0",
+  },
+  tripStops: {
+    gap: 8,
+  },
+  tripStop: {
+    color: "#183247",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  tripCardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  tripAvailability: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    minWidth: 0,
+  },
+  tripAvailabilityDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  tripAvailabilityText: {
+    color: "#1C895E",
+    fontSize: 11,
+    fontWeight: "700",
+    flexShrink: 1,
   },
 });
